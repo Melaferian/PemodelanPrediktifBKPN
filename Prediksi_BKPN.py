@@ -6,7 +6,8 @@ from geopy.distance import geodesic
 from datetime import date
 from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
-def run_predict_app():
+
+def run_predict_app():        
     # Load the trained model
     model = joblib.load('rf_best.joblib')
 
@@ -28,20 +29,18 @@ def run_predict_app():
     # Function to get coordinates from an address
     def get_coordinates(address):
         try:
-            geolocator = Nominatim(user_agent="streamlit_app")
+            geolocator = Nominatim(user_agent="geoapiExercises")
             location = geolocator.geocode(address)
             if location:
                 return (location.latitude, location.longitude)
             else:
-                st.error('Address not found, please check the input.')
                 return None
         except (GeocoderTimedOut, GeocoderServiceError) as e:
-            st.error(f"Geocoding service error: {e}")
+            print(f"Error: Geocoding service error - {e}")
             return None
         except Exception as e:
-            st.error(f"Unexpected error occurred: {e}")
+            print(f"Error: Unexpected error occurred - {e}")
             return None
-
     # Function to calculate distance to KPKNL
     def calculate_distance_to_kpknl(user_coords, kpknl_choice):
         kpknl_coords = kpknl_coordinates[kpknl_choice]
@@ -59,22 +58,20 @@ def run_predict_app():
             return 4
         else:
             return 0  # Default case, although should not occur with valid input
-
     # Define a function to normalize user input
     def normalize_input(sp3n, usia_bkpn, jarak_ke_kpknl):
         norm_sp3n = (sp3n - mean_sp3n) / std_sp3n
         norm_usia_bkpn = (usia_bkpn - mean_usia_bkpn) / std_usia_bkpn
         norm_jarak_ke_kpknl = (jarak_ke_kpknl - mean_jarak_ke_kpknl) / std_jarak_ke_kpknl
         return norm_sp3n, norm_usia_bkpn, norm_jarak_ke_kpknl
-
-    # Define a function to get user input
+    # Define a function to get user input   
     def get_user_input():
         st.sidebar.markdown("## Lengkapi Data di bawah ini.")
         # Dropdown for KPKNL choice
         kpknl_choice = st.sidebar.selectbox('Pilih KPKNL', list(kpknl_coordinates.keys()))
 
         sp3n = st.sidebar.number_input('Nilai Piutang', value=0, step=1)
-
+    #
         today = date.today()
         min_date = today.replace(year=1990, month=1, day=1)  # Adjust min_date as needed
         max_date = today  # Allow current date as max date
@@ -100,11 +97,11 @@ def run_predict_app():
                 jarak_ke_kpknl = calculate_distance_to_kpknl(coordinates, kpknl_choice)
             else:
                 jarak_ke_kpknl = 0.0
+                st.sidebar.error('Address not found, please check the input.')
                 address_found = False
         else:
             jarak_ke_kpknl = 0.0
             address_found = False
-
         norm_sp3n, norm_usia_bkpn, norm_jarak_ke_kpknl = normalize_input(sp3n, usia_bkpn, jarak_ke_kpknl)
 
         # Assign 1 to the chosen KPKNL variable, and 0 to the others
@@ -171,13 +168,13 @@ def run_predict_app():
             sp3n, usia_bkpn, jarak_ke_kpknl,
             kpknl_serang, kpknl_tangerang_i, kpknl_tangerang_ii,
             kred_bl_non_kemenkeu, kred_bumn_non_perbankan, kred_djbc, kred_eks_blbi,
-            kred_pemda, kred_pp_non_kemenkeu, kred_perbankan, kred_rumah_sakit, kred_stan, kred_sekjen_kemenkeu,
-            terima_tw_i, terima_tw_ii, terima_tw_iii, terima_tw_iv
+            kred_pemda, kred_pp_non_kemenkeu, kred_perbankan, kred_rumah_sakit, terima_tw_i, terima_tw_ii,
+            terima_tw_iii, terima_tw_iv
         ]])
         return user_input, address_found
 
     # Get user input
-    user_input, address_found = get_user_input()
+    user_input,address_found = get_user_input()
 
     # Add a button to make the prediction
     if st.sidebar.button('Predict', disabled=not address_found):
